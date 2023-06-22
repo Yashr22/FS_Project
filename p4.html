@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Operations with React</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 5px;
+    }
+
+    .form-group button {
+      padding: 5px 10px;
+      background-color: #4caf50;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .animal-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .animal-list li {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .animal-name {
+      flex: 1;
+    }
+
+    .animal-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .animal-actions button {
+      padding: 2px 5px;
+      background-color: #f44336;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .animal-actions button.update {
+      background-color: #2196f3;
+    }
+
+    .animal-actions button:hover {
+      opacity: 0.8;
+    }
+
+    h2 {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    class Animal {
+      constructor(name, lifespan) {
+        this.name = name;
+        this.lifespan = lifespan;
+        this.age = 0;
+      }
+    
+      increaseAge() {
+        this.age++;
+      }
+    
+      isAlive() {
+        return this.age < this.lifespan;
+      }
+      updateName(updatedName) {
+    this.name = updatedName;
+  }
+    }
+    
+    class Zoo {
+      constructor() {
+        this.animals = [];
+      }
+    
+      addAnimal(animal) {
+        this.animals.push(animal);
+      }
+      updateAnimal(animal, updatedName, updatedLifespan) {
+    const index = this.animals.indexOf(animal);
+
+    if (index !== -1) {
+      this.animals[index].updateName(updatedName);
+      this.animals[index].lifespan = updatedLifespan;
+    }
+  }
+    
+      getAnimalsAliveAfterOneYear() {
+        const animalsAlive = [];
+    
+        for (let i = 0; i < this.animals.length; i++) {
+          const animal = this.animals[i];
+          animal.increaseAge();
+    
+          if (animal.isAlive()) {
+            animalsAlive.push(animal);
+          }
+        }
+    
+        return animalsAlive;
+      }
+
+      getNumberOfDeadAnimals() {
+        return this.animals.length - this.getAnimalsAliveAfterOneYear().length;
+      }
+      getDeadAnimalsInfo() {
+        const deadAnimals = this.animals.filter((animal) => !animal.isAlive());
+        return deadAnimals.map((animal) => ({
+          name: animal.name,
+          lifespan: animal.lifespan
+        }));
+      }
+    }
+
+    class CreateAnimalForm extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = {
+          name: '',
+          lifespan: ''
+        };
+      }
+    
+      handleInputChange = (event) => {
+        this.setState({ [event.target.name]: event.target.value });
+      }
+    
+      handleSubmit = (event) => {
+        event.preventDefault();
+        const { name, lifespan } = this.state;
+        const animal = new Animal(name, parseInt(lifespan, 10));
+        this.props.addAnimal(animal);
+        this.setState({ name: '', lifespan: '' });
+      }
+    
+      render() {
+        return (
+          <form onSubmit={this.handleSubmit}>
+            <label>
+              Name:
+              <input
+                type="text"
+                name="name"
+                value={this.state.name}
+                onChange={this.handleInputChange}
+              />
+            </label>
+            <br />
+            <label>
+              Lifespan:
+              <input
+                type="number"
+                name="lifespan"
+                value={this.state.lifespan}
+                onChange={this.handleInputChange}
+              />
+            </label>
+            <br />
+            <button type="submit">Add Animal</button>
+          </form>
+        );
+      }
+    }
+    
+    class AnimalList extends React.Component {
+      handleDelete = (animal) => {
+        this.props.deleteAnimal(animal);
+      }
+    
+      state = {
+    updatedName: '',
+  };
+
+  handleNameChange = (event) => {
+    this.setState({ updatedName: event.target.value });
+  }
+
+  handleUpdate = (animal) => {
+    const { updatedName } = this.state;
+    this.props.updateAnimal(animal, updatedName, animal.lifespan);
+    this.setState({ updatedName: '' });
+  }
+
+  render() {
+    const { animals } = this.props;
+    const { updatedName } = this.state;
+
+    return (
+      <ul>
+        {animals.map((animal) => (
+          <li key={animal.name}>
+            <span className="animal-name">{animal.name} (Lifespan: {animal.lifespan})</span>
+            <div className="animal-actions">
+              <input
+                type="text"
+                value={updatedName}
+                onChange={this.handleNameChange}
+              />
+              <button className="update" onClick={() => this.handleUpdate(animal)}>
+                Update
+              </button>
+              <button onClick={() => this.handleDelete(animal)}>Delete</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+    }
+    
+    class ZooApp extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = {
+          zoo: new Zoo()
+        };
+      }
+    
+      addAnimal = (animal) => {
+        const { zoo } = this.state;
+        zoo.addAnimal(animal);
+        this.setState({ zoo });
+      }
+    
+      deleteAnimal = (animal) => {
+        const { zoo } = this.state;
+        zoo.animals = zoo.animals.filter((a) => a !== animal);
+        this.setState({ zoo });
+      }
+      updateAnimal = (animal, updatedName, updatedLifespan) => {
+    const { zoo } = this.state;
+    zoo.updateAnimal(animal, updatedName, updatedLifespan);
+    this.setState({ zoo });
+  }
+    
+    
+      render() {
+        const { zoo } = this.state;
+        const animalsAliveAfterOneYear = zoo.getAnimalsAliveAfterOneYear();
+        const numberOfDeadAnimals = zoo.getNumberOfDeadAnimals();
+        const deadAnimalsInfo = zoo.getDeadAnimalsInfo();
+
+    
+        return (
+      <div>
+        <CreateAnimalForm addAnimal={this.addAnimal} />
+        <h2>Animals Alive After One Year:</h2>
+        <AnimalList
+          animals={animalsAliveAfterOneYear}
+          deleteAnimal={this.deleteAnimal}
+          updateAnimal={this.updateAnimal}
+        />
+        <h2>Number of Dead Animals: {numberOfDeadAnimals}</h2>
+        <ul>
+          {deadAnimalsInfo.map((animal) => (
+            <li key={animal.name}>
+              {animal.name} (Lifespan: {animal.lifespan})
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+    }
+    
+    ReactDOM.render(<ZooApp />, document.getElementById('root'));
+  </script>
+</body>
+</html>
